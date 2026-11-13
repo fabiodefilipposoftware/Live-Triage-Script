@@ -1,0 +1,6 @@
+param(
+    [string]$NomePC,
+    [string]$Utente
+)
+
+psexec \\$NomePC -u $Utente powershell -NoProfile -Command "Write-Output '=== 1. PROCESSI ==='; Get-CimInstance Win32_Process | Select-Object ProcessId, Name, CommandLine | Format-Table -AutoSize; Write-Output '=== 2. NETSTAT -ANOB ==='; netstat -anob; Write-Output '=== 3. CONNESSIONI ESTABLISHED ==='; Get-NetTCPConnection -State Established | Select-Object LocalAddress,LocalPort,RemoteAddress,RemotePort,OwningProcess,@{Name='ProcessName';Expression={(Get-Process -Id `$_.OwningProcess).Name}} | Format-Table -AutoSize; Write-Output '=== 4. EVENTI 4688 (NUOVI PROCESSI) ==='; wevtutil qe Security /q:'*[System[(EventID=4688)]]' /c:15 /f:text; Write-Output '=== 5. EVENTI 4625 (ACCESSI FALLITI) ==='; wevtutil qe Security /q:'*[System[(EventID=4625)]]' /c:10 /f:text; Write-Output '=== 6. TASK PIANIFICATI NON MICROSOFT ==='; Get-ScheduledTask | Where-Object {`$_.TaskPath -notlike '\Microsoft*'} | Select-Object TaskName, State, TaskPath | Format-Table -AutoSize; Write-Output '=== 7. CACHE DNS ==='; ipconfig /displaydns; Write-Output '=== 8. SCRIPT POWERSHELL (4104) ==='; wevtutil qe 'Microsoft-Windows-PowerShell/Operational' /q:'*[System[(EventID=4104)]]' /c:5 /f:text"
